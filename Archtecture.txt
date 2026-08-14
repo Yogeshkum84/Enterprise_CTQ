@@ -1,0 +1,16 @@
+CTQ-Enterprise/
+├── index.html                 # UI Shell only
+├── css/
+│   ├── main.css              # Main styling
+│   └── components.css        # UI components
+├── js/
+│   ├── app.js                # UI Controller (thin)
+│   ├── ctq-engine.js         # Core Logic Module
+│   ├── ctq-worker.js         # Web Worker for processing
+│   ├── auth-manager.js       # Authentication layer
+│   ├── export-manager.js     # CSV/PDF generation
+│   └── utils.js              # Helpers
+├── assets/
+│   └── logo.svg              # YK Branding
+└── docs/
+    └── user-guide.pdf

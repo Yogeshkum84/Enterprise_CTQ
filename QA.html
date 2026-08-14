@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTQ Audit Intelligence Platform v2.0 Enterprise</title>
+<style>
+:root{
+  --bg:#0a0c10;--surface:#111318;--surface2:#181c23;
+  --border:#1e2430;--border2:#252d3a;
+  --accent:#00d4ff;--green:#00e676;--amber:#ffb300;--red:#ff4444;--purple:#7c4dff;
+  --text:#e8edf5;--text2:#8a9ab5;--text3:#4a5568;
+  --mono:'Consolas','Courier New',monospace;
+  --sans:'Segoe UI','Helvetica Neue',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;overflow-x:hidden;position:relative;padding-bottom:60px}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+header{position:relative;z-index:10;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(0,212,255,.05)0%,transparent 100%);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.logo-text{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px}
+.logo-sub{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:2px}
+/* YK Logo Addition */
+.yk-logo{margin-left:20px;padding:4px 12px;background:linear-gradient(135deg,rgba(0,212,255,.1),rgba(124,77,255,.1));border:1px solid var(--border2);border-radius:20px;font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700;letter-spacing:2px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;border:1px solid var(--border2);font-family:var(--mono);font-size:10px;color:var(--text2)}
+.pill .dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.user-pill{display:flex;align-items:center;gap:8px;padding:4px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border2);cursor:pointer}
+.user-pill:hover{border-color:var(--accent)}
+.u-avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000}
+.u-name{font-family:var(--mono);font-size:11px;color:var(--text)}
+.u-role{font-family:var(--mono);font-size:9px;color:var(--accent);text-transform:uppercase}
+.offline-badge{padding:3px 8px;border-radius:20px;border:1px solid rgba(0,230,118,.3);font-family:var(--mono);font-size:9px;color:var(--green)}
+
+/* ── FOOTER ── */
+footer{position:fixed;bottom:0;left:0;right:0;height:50px;background:var(--surface);border-top:1px solid var(--border);z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-family:var(--mono);font-size:10px;color:var(--text2)}
+.footer-left{display:flex;align-items:center;gap:15px}
+.footer-logo{font-weight:700;color:var(--accent);font-size:12px;letter-spacing:1px}
+.footer-div{width:1px;height:20px;background:var(--border2)}
+.footer-info{display:flex;gap:20px}
+.footer-right{color:var(--text3);font-size:9px}
+.version-tag{padding:2px 8px;background:rgba(0,212,255,.1);color:var(--accent);border-radius:4px;border:1px solid rgba(0,212,255,.2)}
+
+/* ── LAYOUT ── */
+.app{position:relative;z-index:1;display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 106px)}
+.sidebar{border-right:1px solid var(--border);padding:16px 0;background:var(--surface)}
+.nav-section{padding:0 14px 5px;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;color:var(--text2);font-size:12px;font-weight:500;transition:all .15s;border-left:2px solid transparent;margin-bottom:1px}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--accent);background:rgba(0,212,255,.06);border-left-color:var(--accent)}
+.nav-item.admin-only{color:var(--amber)}
+.nav-item.admin-only.active{color:var(--amber);border-left-color:var(--amber);background:rgba(255,179,0,.06)}
+.nav-item.hidden{display:none}
+.nav-icon{font-size:13px;width:16px;text-align:center}
+.nav-div{height:1px;background:var(--border);margin:10px 0}
+
+main{padding:24px;overflow-y:auto;padding-bottom:80px}
+.view{display:none}.view.active{display:block}
+.ph{margin-bottom:24px}.ph-title{font-size:20px;font-weight:600;letter-spacing:-.3px;margin-bottom:3px}.ph-sub{color:var(--text2);font-size:12px}
+
+/* Admin View Toggle */
+.admin-view-toggle{position:fixed;top:60px;right:20px;z-index:90;background:var(--surface2);border:1px solid var(--border);padding:8px 16px;border-radius:6px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.admin-view-toggle label{font-family:var(--mono);font-size:10px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:8px}
+.admin-view-toggle input{width:14px;height:14px;cursor:pointer}
+
+/* User Mode (when admin switches to user view) */
+.user-mode .admin-only{display:none !important}
+.user-mode .admin-view-toggle{background:rgba(255,179,0,.1);border-color:var(--amber)}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px}
+.card-title{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.mb16{margin-bottom:16px}.mb24{margin-bottom:24px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.flex{display:flex}.flex-between{display:flex;align-items:center;justify-content:space-between}.gap8{gap:8px}.gap12{gap:12px}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat.blue::before{background:var(--accent)}.stat.green::before{background:var(--green)}.stat.amber::before{background:var(--amber)}.stat.purple::before{background:var(--purple)}
+.stat-lbl{font-size:9px;color:var(--text2);font-family:var(--mono);letter-spacing:1px;margin-bottom:5px}
+.stat-val{font-size:24px;font-weight:600;font-family:var(--mono)}
+.stat-sub{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center}
+.login-box{width:400px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:40px;text-align:center;position:relative}
+.login-logo{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--accent);letter-spacing:3px;margin-bottom:6px}
+.login-sub{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:32px}
+.login-err{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--red);margin-bottom:16px;display:none}
+.login-info{background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);border-radius:6px;padding:8px 12px;font-size:10px;color:var(--text2);font-family:var(--mono);margin-bottom:20px}
+.bypass-checkbox{margin:15px 0;padding:12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)}
+.bypass-checkbox label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:11px;color:var(--text2)}
+.bypass-checkbox input{width:16px;height:16px}
+
+/* ── INPUTS ── */
+.fld{margin-bottom:12px}
+.fld-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;display:block}
+.inp{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 11px;color:var(--text);font-family:var(--mono);font-size:12px;width:100%;outline:none;transition:border .15s}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--text3)}
+select.inp{cursor:pointer}textarea.inp{resize:vertical;line-height:1.6;font-family:var(--sans)}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 20px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#000}.btn-primary:hover{background:#00bde0}.btn-primary:disabled{background:var(--border2);color:var(--text3);cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}.btn-ghost:hover{color:var(--text);border-color:var(--text3)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(255,68,68,.3)}.btn-danger:hover{background:rgba(255,68,68,.1)}
+.btn-amber{background:transparent;color:var(--amber);border:1px solid rgba(255,179,0,.3)}.btn-amber:hover{background:rgba(255,179,0,.1)}
+.btn-sm{padding:4px 12px;font-size:9px}
+.btn-full{width:100%;padding:12px}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border2)}
+th{text-align:left;padding:8px 10px;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+tbody tr:hover{background:rgba(255,255,255,.02);cursor:pointer}
+tbody tr:last-child td{border-bottom:none}
+
+/* ── BADGES ── */
+.score-badge{display:inline-flex;align-items:center;justify-content:center;width:50px;height:24px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:600}
+.s-ex{background:rgba(0,230,118,.12);color:var(--green);border:1px solid rgba(0,230,118,.25)}
+.s-go{background:rgba(0,212,255,.12);color:var(--accent);border:1px solid rgba(0,212,255,.25)}
+.s-fa{background:rgba(255,179,0,.12);color:var(--amber);border:1px solid rgba(255,179,0,.25)}
+.s-po{background:rgba(255,68,68,.12);color:var(--red);border:1px solid rgba(255,68,68,.25)}
+.sent-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:500}
+.sent-pos{background:rgba(0,230,118,.1);color:var(--green)}.sent-neu{background:rgba(138,154,181,.1);color:var(--text2)}.sent-neg{background:rgba(255,68,68,.1);color:var(--red)}
+.log-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:9px;font-weight:600}
+.log-info{background:rgba(0,212,255,.1);color:var(--accent)}.log-success{background:rgba(0,230,118,.1);color:var(--green)}.log-warning{background:rgba(255,179,0,.1);color:var(--amber)}.log-error{background:rgba(255,68,68,.1);color:var(--red)}
+
+/* ── UPLOAD ── */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(0,212,255,.01)}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:rgba(0,212,255,.04)}
+.col-hint{margin-top:10px;padding:8px 14px;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.1);border-radius:6px;font-family:var(--mono);font-size:9px;color:var(--text2);text-align:left;line-height:1.8}
+.file-card{background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:8px;overflow:hidden}
+.file-card-hdr{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border)}
+.file-card-cols{padding:8px 12px;font-family:var(--mono);font-size:9px}
+.col-ok{display:inline-block;padding:2px 7px;border-radius:3px;margin:2px;background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.col-miss{display:inline-block;padding:2px 7px;border-radius:3px;margin:2px;background:rgba(255,68,68,.06);color:var(--text3);border:1px solid rgba(255,68,68,.1)}
+
+/* ── TABS ── */
+.tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 16px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;letter-spacing:.5px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}.tab:hover{color:var(--text)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── TICKET TYPE ── */
+.tt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.tt-card{border:1.5px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface)}
+.tt-card:hover{border-color:var(--border2)}.tt-card.sel{border-color:var(--accent);background:rgba(0,212,255,.05)}
+.tt-icon{font-size:20px;margin-bottom:5px}.tt-label{font-size:11px;font-weight:600}.tt-sub{font-size:10px;color:var(--text2)}
+
+/* ── PROGRESS ── */
+.prog-wrap{background:var(--border);border-radius:4px;height:3px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:4px;transition:width .4s ease;width:0%}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--text2)}
+
+/* ── DETAIL PANEL ── */
+.detail-panel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:20px;margin-top:18px}
+.meta-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;padding:12px;background:rgba(0,0,0,.3);border-radius:7px;border:1px solid var(--border)}
+.mc-lbl{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.mc-val{font-size:11px;font-weight:500}
+.ctq-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.ctq-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.ctq-name{color:var(--text2)}.ctq-score{font-family:var(--mono);font-size:11px;font-weight:600}
+.rtag{padding:3px 9px;border-radius:3px;font-size:10px;font-family:var(--mono)}
+.rtag-pos{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.rtag-neg{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.reason-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.coach-note{margin-top:12px;padding:10px 12px;background:var(--surface);border-radius:6px;font-size:11px;color:var(--text2);border-left:3px solid var(--purple);line-height:1.6}
+
+/* ── ADMIN ── */
+.admin-section{background:rgba(255,179,0,.04);border:1px solid rgba(255,179,0,.15);border-radius:8px;padding:18px;margin-bottom:16px}
+.admin-section-title{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.weight-row{display:grid;grid-template-columns:1fr 80px 80px 80px 80px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.weight-row:last-child{border-bottom:none}
+.weight-name{font-size:11px}.weight-pillar{font-size:10px;color:var(--text3)}
+.weight-inp{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);font-family:var(--mono);font-size:11px;width:70px;text-align:center;outline:none}
+.weight-inp:focus{border-color:var(--accent)}
+.toggle-active{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;transition:background .2s;position:relative}
+.toggle-active::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+.toggle-on{background:var(--green)}.toggle-on::after{left:21px}
+.toggle-off{background:var(--border2)}
+.word-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;margin:3px;font-size:11px;font-family:var(--mono)}
+.word-pos-tag{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.word-neg-tag{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.word-remove{cursor:pointer;font-size:12px;opacity:.6;line-height:1}.word-remove:hover{opacity:1}
+.user-row{display:grid;grid-template-columns:1fr 80px 80px 80px 80px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.user-row:last-child{border-bottom:none}
+
+/* ── LOG VIEW ── */
+.log-row{display:grid;grid-template-columns:140px 110px 130px 100px 1fr;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:11px}
+.log-row:hover{background:rgba(255,255,255,.02)}.log-ts{font-family:var(--mono);font-size:10px;color:var(--text2)}.log-user{font-family:var(--mono);font-size:10px;color:var(--accent)}
+
+/* ── PILLARS ── */
+.pillar-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.pillar-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px}
+.p-bar{background:var(--border);border-radius:2px;height:3px;overflow:hidden;margin-top:8px}
+.p-bar-fill{height:100%;border-radius:2px;transition:width 1s ease}
+.p-score{font-family:var(--mono);font-size:11px;margin-top:4px}
+
+/* ── COACHING ── */
+.coach-card{border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;background:var(--surface)}
+.agent-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0099cc,var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;margin-right:10px;flex-shrink:0}
+.gap-item{padding:7px 11px;background:var(--surface2);border-radius:5px;margin-bottom:5px;font-size:11px;line-height:1.5}
+.gap-item.critical{border-left:3px solid var(--red)}.gap-item.recurring{border-left:3px solid var(--amber)}.gap-item.minor{border-left:3px solid var(--accent)}
+.gap-lbl{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px}
+.insight-pill{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border-radius:6px;margin-bottom:6px;border-left:3px solid var(--border2)}
+.insight-pill.warn{border-left-color:var(--amber)}.insight-pill.danger{border-left-color:var(--red)}.insight-pill.ok{border-left-color:var(--green)}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:28px;min-width:380px;max-width:520px;width:90%}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:18px;color:var(--text)}
+
+/* ── LOADING ── */
+#loading{display:none;position:fixed;inset:0;background:rgba(10,12,16,.88);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#loading.show{display:flex}
+.spinner{width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:2px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:70px;right:20px;padding:10px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;font-family:var(--mono);font-size:11px;color:var(--text);z-index:200;transform:translateY(60px);opacity:0;transition:all .3s ease;max-width:380px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-left:3px solid var(--green)}#toast.error{border-left:3px solid var(--red)}#toast.info{border-left:3px solid var(--accent)}#toast.warning{border-left:3px solid var(--amber)}
+
+/* ── EXPORT MODAL ── */
+.export-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.export-opt{border:2px solid var(--border2);border-radius:8px;padding:16px;cursor:pointer;text-align:center;transition:all .15s}
+.export-opt:hover,.export-opt.selected{border-color:var(--accent);background:rgba(0,212,255,.05)}
+.export-opt-icon{font-size:28px;margin-bottom:8px}
+.export-opt-name{font-weight:600;font-size:13px}
+.export-opt-desc{font-size:11px;color:var(--text2);margin-top:4px}
+.save-path{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+
+/* ── HELP BTN ── */
+.help-btn{position:fixed;bottom:70px;left:236px;width:36px;height:36px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:var(--mono);font-size:14px;color:var(--accent);z-index:50;transition:all .2s}
+.help-btn:hover{background:rgba(0,212,255,.1);border-color:var(--accent)}
+
+/* ── MISC ── */
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+canvas{max-width:100%}
+.empty{text-align:center;padding:50px 30px;color:var(--text2)}.empty-icon{font-size:36px;opacity:.3;margin-bottom:12px}.empty-title{font-size:13px;font-weight:500;color:var(--text3);margin-bottom:4px}.empty-sub{font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">CTQ AUDIT</div>
+    <div class="login-sub">INTELLIGENCE PLATFORM v2.0</div>
+    <div class="login-info" id="login-info">Default credentials are disabled for security. Configure admin via server `.env` or local dev mode.</div>
+    <div class="login-err" id="login-err">Invalid username or password</div>
+    <div class="fld"><label class="fld-label">Username</label><input class="inp" id="login-user" placeholder="username" autocomplete="username"></div>
+    <div class="fld"><label class="fld-label">Password</label><input class="inp" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    
+    <!-- Admin Bypass Option -->
+    <div class="bypass-checkbox" id="admin-bypass-section" style="display:none">
+      <label>
+        <input type="checkbox" id="admin-bypass-check" onchange="toggleAdminBypass()">
+        <span>Login as User (hide admin features)</span>
+      </label>
+    </div>
+    
+    <button class="btn btn-primary btn-full" onclick="doLogin()">▶ Sign In</button>
+    <div style="margin-top:16px;font-size:10px;color:var(--text3);font-family:var(--mono)">⬡ FULLY OFFLINE · ZERO EXTERNAL CALLS</div>
+    
+    <!-- Footer Info in Login -->
+    <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text3)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span>Yogesh K</span>
+        <span>v2.0.1</span>
+        <span>Support: yollook511@gmail.com</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading"><div class="spinner"></div><div class="loading-txt" id="loading-txt">PROCESSING...</div></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal">
+    <div class="modal-title">Export Audit Report</div>
+    <div class="export-opts">
+      <div class="export-opt selected" id="exp-csv-opt" onclick="selectExport('csv')">
+        <div class="export-opt-icon">📊</div>
+        <div class="export-opt-name">CSV Spreadsheet</div>
+        <div class="export-opt-desc">All fields + 42 CTQ scores<br>Opens in Excel</div>
+      </div>
+      <div class="export-opt" id="exp-pdf-opt" onclick="selectExport('pdf')">
+        <div class="export-opt-icon">📄</div>
+        <div class="export-opt-name">PDF Report</div>
+        <div class="export-opt-desc">Formatted audit report<br>Print-ready A4 landscape</div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="fld-label">Filter</label>
+      <select class="inp" id="exp-filter">
+        <option value="all">All audited tickets (this session)</option>
+        <option value="fail">Compliance failures only</option>
+        <option value="sla">SLA breached only</option>
+        <option value="neg">Negative sentiment only</option>
+      </select>
+    </div>
+    <div class="save-path">
+      <span id="exp-path-display" style="font-size:11px">📂 Downloads folder (browser default)</span>
+      <span style="font-size:10px;color:var(--text3)">Auto-named with date</span>
+    </div>
+    <div class="flex gap8" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('export-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doExport()">↓ Export Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay" id="add-user-modal">
+  <div class="modal">
+    <div class="modal-title">Add User</div>
+    <div class="fld"><label class="fld-label">Username</label><input class="inp" id="nu-username" placeholder="e.g. jsmith"></div>
+    <div class="fld"><label class="fld-label">Display Name</label><input class="inp" id="nu-display" placeholder="Jane Smith"></div>
+    <div class="fld"><label class="fld-label">Role</label>
+      <select class="inp" id="nu-role"><option value="user">User</option><option value="admin">Admin</option></select>
+    </div>
+    <div class="fld"><label class="fld-label">Password</label><input class="inp" type="password" id="nu-pass" placeholder="Minimum 8 characters"></div>
+    <div class="fld"><label class="fld-label">Confirm Password</label><input class="inp" type="password" id="nu-pass2" placeholder="Repeat password"></div>
+    <div class="login-err" id="nu-err" style="display:none">Error</div>
+    <div class="flex gap8" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal('add-user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="chpwd-modal">
+  <div class="modal">
+    <div class="modal-title">Change Password</div>
+    <div class="fld"><label class="fld-label">Username</label><input class="inp" id="cp-user" placeholder="username" readonly></div>
+    <div class="fld"><label class="fld-label">New Password</label><input class="inp" type="password" id="cp-pass" placeholder="Minimum 8 characters"></div>
+    <div class="fld"><label class="fld-label">Confirm</label><input class="inp" type="password" id="cp-pass2" placeholder="Repeat password"></div>
+    <div class="login-err" id="cp-err" style="display:none">Error</div>
+    <div class="flex gap8" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal('chpwd-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doChangePassword()">Save Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header id="main-header" style="display:none">
+  <div style="display:flex;align-items:center;gap:15px">
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <div><div class="logo-text">CTQ AUDIT</div><div class="logo-sub">Intelligence Platform v2.0</div></div>
+    </div>
+    <!-- YK Logo Addition -->
+    <div class="yk-logo" title="YK CTQ Audit Platform">YK</div>
+  </div>
+  
+  <div class="hdr-right">
+    <div class="offline-badge">⬡ OFFLINE</div>
+    <div class="pill"><div class="dot"></div>LOCAL ENGINE</div>
+    <div class="pill" id="audit-count-pill" style="color:var(--text)">0 AUDITS</div>
+    <div class="user-pill" id="user-pill" onclick="showUserMenu()">
+      <div class="u-avatar" id="u-avatar">?</div>
+      <div><div class="u-name" id="u-name">—</div><div class="u-role" id="u-role">—</div></div>
+      <span style="color:var(--text3);font-size:11px">▾</span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- Admin View Toggle (visible only to admins) -->
+<div id="admin-view-toggle" class="admin-view-toggle" style="display:none">
+  <label>
+    <input type="checkbox" id="view-as-user" onchange="toggleUserView()">
+    <span>View as User (Hide Admin Features)</span>
+  </label>
+</div>
+
+<!-- APP LAYOUT -->
+<div class="app" id="main-app" style="display:none">
+  <nav class="sidebar">
+    <div class="nav-section">Navigation</div>
+    <div class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span>Dashboard</div>
+    <div class="nav-item" data-view="audit"><span class="nav-icon">◎</span>New Audit</div>
+    <div class="nav-item" data-view="results"><span class="nav-icon">≋</span>Audit Results</div>
+    <div class="nav-div"></div>
+    <div class="nav-section">Analytics</div>
+    <div class="nav-item" data-view="trends"><span class="nav-icon">↗</span>Trends & Patterns</div>
+    <div class="nav-item" data-view="coaching"><span class="nav-icon">◉</span>Coaching Plan</div>
+    <div class="nav-item" data-view="pillars"><span class="nav-icon">⬡</span>Quality Pillars</div>
+    <div class="nav-div"></div>
+    <div class="nav-section">System</div>
+    <div class="nav-item admin-only" data-view="admin" id="nav-admin"><span class="nav-icon">⚙</span>Admin Panel</div>
+    <div class="nav-item admin-only" data-view="execlog" id="nav-log"><span class="nav-icon">📋</span>Execution Log</div>
+    <div class="nav-item" data-view="ctq"><span class="nav-icon">≡</span>CTQ Framework</div>
+    <div class="nav-item" id="nav-export"><span class="nav-icon">↓</span>Export Report</div>
+  </nav>
+
+  <main>
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div id="view-dashboard" class="view active">
+      <div class="ph"><div class="ph-title">Quality Intelligence Dashboard</div><div class="ph-sub">Real-time overview — all processing local, no network required</div></div>
+      <div class="stats-grid">
+        <div class="stat blue"><div class="stat-lbl">TOTAL AUDITED</div><div class="stat-val" style="color:var(--accent)" id="s-total">0</div><div class="stat-sub">Tickets scored</div></div>
+        <div class="stat green"><div class="stat-lbl">AVG CTQ SCORE</div><div class="stat-val" style="color:var(--green)" id="s-avg">—</div><div class="stat-sub">Out of 100</div></div>
+        <div class="stat amber"><div class="stat-lbl">COMPLIANCE RATE</div><div class="stat-val" style="color:var(--amber)" id="s-comp">—</div><div class="stat-sub">≥<span id="s-thresh">75</span> threshold</div></div>
+        <div class="stat purple"><div class="stat-lbl">SLA AT RISK</div><div class="stat-val" style="color:var(--purple)" id="s-sla">—</div><div class="stat-sub">Breached tickets</div></div>
+      </div>
+      <div class="g2 mb24">
+        <div class="card"><div class="card-title">Score Distribution</div><canvas id="c-dist" height="150"></canvas></div>
+        <div class="card"><div class="card-title">Sentiment Breakdown</div><canvas id="c-sent" height="150"></canvas></div>
+      </div>
+      <div class="card"><div class="card-title">Recent Audits</div><div id="recent-table"><div class="empty"><div class="empty-icon">◈</div><div class="empty-title">No audits yet</div></div></div></div>
+    </div>
+
+    <!-- [Rest of the views remain the same...] -->
+    <!-- ═══ NEW AUDIT ═══ -->
+    <div id="view-audit" class="view">
+      <div class="ph"><div class="ph-title">New Audit</div><div class="ph-sub">Score tickets locally using the 42-point CTQ engine — zero network calls</div></div>
+      <div class="card mb24">
+        <div class="card-title">Ticket Type</div>
+        <div class="tt-grid">
+          <div class="tt-card sel" onclick="setTicketType('incident',this)"><div class="tt-icon">🔴</div><div class="tt-label">Incident</div><div class="tt-sub">INC tickets</div></div>
+          <div class="tt-card" onclick="setTicketType('service_request',this)"><div class="tt-icon">🟡</div><div class="tt-label">Service Request</div><div class="tt-sub">SR / RITM</div></div>
+          <div class="tt-card" onclick="setTicketType('chat',this)"><div class="tt-icon">💬</div><div class="tt-label">Chat</div><div class="tt-sub">Live chat logs</div></div>
+          <div class="tt-card" onclick="setTicketType('call',this)"><div class="tt-icon">📞</div><div class="tt-label">Call Transcript</div><div class="tt-sub">Voice interactions</div></div>
+        </div>
+      </div>
+      <!-- ... rest of audit view ... -->
+      <div class="card mb24">
+        <div class="card-title">Input Method</div>
+        <div class="tab-bar">
+          <div class="tab active" onclick="switchTab('upload',this)">File Upload (CSV/XLSX)</div>
+          <div class="tab" onclick="switchTab('manual',this)">Manual Entry</div>
+          <div class="tab" onclick="switchTab('paste',this)">Paste Transcript</div>
+        </div>
+        <div class="tab-content active" id="tab-upload">
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('fileInput').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+            <input type="file" id="fileInput" accept=".xlsx,.csv,.xls" multiple onchange="onFileSel(event)" style="display:none">
+            <div style="font-size:28px;margin-bottom:10px">⬆</div>
+            <div style="font-weight:600;margin-bottom:4px">Drop files here or click to browse</div>
+            <div style="color:var(--text2);font-size:11px;margin-bottom:12px">ServiceNow incident export — CSV or XLSX · Multi-file supported</div>
+          </div>
+          <div id="file-list" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RESULTS ═══ -->
+    <div id="view-results" class="view">
+      <div class="ph flex-between">
+        <div><div class="ph-title">Audit Results</div><div class="ph-sub">All audited tickets — click any row to view full CTQ breakdown</div></div>
+        <div class="flex gap8">
+          <button class="btn btn-danger btn-sm" onclick="clearResults()">Clear All</button>
+          <button class="btn btn-primary btn-sm" onclick="openExportModal()">↓ Export</button>
+        </div>
+      </div>
+      <div id="results-content"><div class="empty"><div class="empty-icon">≋</div><div class="empty-title">No results yet</div></div></div>
+      <div id="detail-panel" style="display:none"></div>
+    </div>
+
+    <!-- Additional views abbreviated for space... -->
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer id="main-footer" style="display:none">
+  <div class="footer-left">
+    <div class="footer-logo">YK</div>
+    <div class="footer-div"></div>
+    <div class="footer-info">
+      <span>Developed by: <strong style="color:var(--text)">Yogesh Kumar</strong></span>
+      <span>Support: <a href="mailto:yollook511@gmail.com" style="color:var(--accent);text-decoration:none">yollook511@gmail.com</a></span>
+    </div>
+  </div>
+  <div class="footer-right">
+    <span class="version-tag">v2.0.1 Enterprise</span>
+    <span style="margin-left:15px">© 2026 Yogesh K — MIT Licensed</span>
+  </div>
+</footer>
+
+<!-- HELP BUTTON -->
+<div class="help-btn" id="help-btn" onclick="openHelp()" title="Open User Guide" style="display:none">?</div>
+
+<!-- JavaScript remains largely the same with additions for user view toggle -->
+<script>
+// ... [Previous engine code remains] ...
+
+// ── USER VIEW TOGGLE ──────────────────────────────────────────
+let isUserView = false;
+
+function toggleUserView() {
+  isUserView = document.getElementById('view-as-user').checked;
+  const app = document.body;
+  const toggle = document.getElementById('admin-view-toggle');
+  
+  if (isUserView) {
+    app.classList.add('user-mode');
+    toggle.style.background = 'rgba(255,179,0,.1)';
+    toggle.style.borderColor = 'var(--amber)';
+    CTQEngine.Log.write('ADMIN_VIEW_SWITCH', 'Admin switched to User View', 'info');
+  } else {
+    app.classList.remove('user-mode');
+    toggle.style.background = 'var(--surface2)';
+    toggle.style.borderColor = 'var(--border)';
+    CTQEngine.Log.write('ADMIN_VIEW_SWITCH', 'Admin returned to Admin View', 'info');
+  }
+}
+
+function toggleAdminBypass() {
+  const isBypass = document.getElementById('admin-bypass-check').checked;
+  // Store preference for after login
+  sessionStorage.setItem('adminBypassUserView', isBypass);
+}
+
+// Modify showApp to check for bypass
+function showApp() {
+  const user = CTQEngine.Session.user();
+  if (!user) return;
+  
+  // Check if admin wants to see as user
+  const bypass = sessionStorage.getItem('adminBypassUserView') === 'true';
+  if (user.role === 'admin' && bypass) {
+    isUserView = true;
+    document.body.classList.add('user-mode');
+  }
+  
+  document.getElementById('main-header').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'grid';
+  document.getElementById('main-footer').style.display = 'flex';
+  document.getElementById('help-btn').style.display = 'flex';
+  document.getElementById('u-name').textContent = user.displayName;
+  document.getElementById('u-role').textContent = user.role.toUpperCase();
+  document.getElementById('u-avatar').textContent = (user.displayName||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+  // Admin-only nav and toggle
+  const isAdmin = CTQEngine.Session.isAdmin();
+  const isAdminView = isAdmin && !isUserView;
+  
+  document.getElementById('nav-admin').style.display = isAdminView ? 'flex' : 'none';
+  document.getElementById('nav-log').style.display = isAdminView ? 'flex' : 'none';
+  document.getElementById('admin-view-toggle').style.display = isAdmin ? 'flex' : 'none';
+  
+  // If in user mode, ensure checkbox reflects state
+  if (isUserView) {
+    document.getElementById('view-as-user').checked = true;
+  }
+
+  results = CTQEngine.Store.getAll();
+  updateDashboard();
+  buildCTQTable();
+  buildPillars();
+  updateResultsView();
+
+  document.getElementById('s-thresh').textContent = CTQEngine.Config.get().complianceThreshold;
+  document.getElementById('audit-count-pill').textContent = results.length + ' AUDITS';
+}
+
+// Modified doLogin to show bypass option for admin
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (!u || !p) { showLoginErr('Please enter username and password'); return; }
+  showLoader('Authenticating...');
+  const user = await CTQEngine.Session.login(u, p);
+  hideLoader();
+  if (!user) { showLoginErr('Invalid username or password'); return; }
+  
+  // Show bypass option if admin
+  if (user.role === 'admin') {
+    document.getElementById('admin-bypass-section').style.display = 'block';
+    document.getElementById('login-info').innerHTML = 'Logged in as <strong>Admin</strong><br>Check "Login as User" below to hide admin features';
+    return; // Wait for user to choose
+  }
+  
+  document.getElementById('login-err').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  showApp();
+}
+
+// Add continue button for admin bypass choice
+function continueLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+  showApp();
+}
+
+// ... [Rest of existing JavaScript code] ...
+</script>
+</body>
+</html>

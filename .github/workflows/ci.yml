@@ -1,0 +1,258 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit bandit flake8
+
+      - name: Run pip-audit (SCA)
+        run: |
+          pip-audit -r requirements.txt -f json -o pip_audit_report.json
+
+      - name: Run Bandit (static security analysis)
+        run: |
+          bandit -r . -lll || true
+
+      - name: Run flake8 (lint)
+        run: |
+          flake8 || true
+
+      - name: Upload pip-audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip_audit_report.json
+
+      - name: Run pytest
+        run: |
+          pip install pytest
+          pytest -q
+
+  secrets-scan:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    needs: security
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks (scan repository for secrets)
+        uses: zricethezav/gitleaks-action@v4
+        with:
+          args: --leaks-exit-code=1
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Import check (server starts without error)
+        run: python -c "import server; print('server.py OK')"
+
+      # -----------------------------------------------------------------------
+      # v3.0 baseline: core 42-criterion CTQ engine
+      # -----------------------------------------------------------------------
+      - name: CTQ scoring engine smoke test
+        run: |
+          python - <<'PY'
+          from server import PyCTQEngine
+          ticket = {
+            "short_description": "VPN not connecting for remote user",
+            "description": "User unable to connect to VPN since this morning. Error: authentication failed.",
+            "category": "Network",
+            "subcategory": "VPN",
+            "priority": "2 - High",
+            "state": "Resolved",
+            "assignment_group": "Network Ops",
+            "assigned_to": "J.Smith",
+            "caller": "J.Doe",
+            "work_notes": "Checked AD account. Password expired. Reset and tested with user. VPN connected successfully.",
+            "resolution_notes": "Password reset resolved the issue. User confirmed working.",
+            "resolution_code": "Resolved by IT",
+            "additional_comments": "Hi John, your VPN access has been restored. Kind regards, IT Support",
+          }
+          result = PyCTQEngine.score(ticket)
+          assert result["overall_score"] > 70, f"Expected >70 got {result['overall_score']}"
+          assert result["grade"] in {"Excellent","Good","Fair","Poor"}
+          print(f"Score: {result['overall_score']} | Grade: {result['grade']} | Sentiment: {result['sentiment']}")
+          PY
+
+      # -----------------------------------------------------------------------
+      # v4.0 — SentimentEngine (7-dimension)
+      # -----------------------------------------------------------------------
+      - name: v4.0 SentimentEngine test
+        run: |
+          python - <<'PY'
+          from server import SentimentEngine
+          frustrated_text = "I CANNOT BELIEVE THIS IS STILL NOT WORKING!!! You said it would be fixed DAYS ago. This is completely unacceptable. I have been waiting and waiting."
+          result = SentimentEngine.analyse(frustrated_text, caller="John CEO", priority="Low")
+          assert result["frustration_index"] >= 40, f"Expected frustration >=40, got {result['frustration_index']}"
+          assert result["vip_sensitivity"] >= 50, f"Expected VIP >=50, got {result['vip_sensitivity']}"
+          dims = ["polarity","frustration_index","escalation_urgency","vip_sensitivity",
+                  "sla_anxiety","resolution_confidence","repeat_caller_signal"]
+          for d in dims:
+              assert 0 <= result[d] <= 100, f"{d}={result[d]} out of 0-100 range"
+          print("SentimentEngine OK:", {k:v for k,v in result.items() if k in dims})
+          PY
+
+      # -----------------------------------------------------------------------
+      # v4.0 — ResolutionIntegrityEngine
+      # -----------------------------------------------------------------------
+      - name: v4.0 ResolutionIntegrityEngine test
+        run: |
+          python - <<'PY'
+          from server import ResolutionIntegrityEngine
+          good = ResolutionIntegrityEngine.score(
+              "Reset AD password per caller request for Office365. Tested: user confirmed login successful via Teams call.",
+              "Resolved by IT", "Resolved"
+          )
+          assert good["resolution_integrity"] >= 40, f"Good notes scored low: {good}"
+          empty = ResolutionIntegrityEngine.score("", "Resolved by IT", "Resolved")
+          assert empty["resolution_integrity"] < good["resolution_integrity"], "Empty notes should score lower"
+          assert 0 <= good["resolution_integrity"] <= 100
+          print(f"Good notes: {good['resolution_integrity']} | Empty notes: {empty['resolution_integrity']}")
+          PY
+
+      # -----------------------------------------------------------------------
+      # v4.0 — CategoryQualityEngine (needs keyword map)
+      # -----------------------------------------------------------------------
+      - name: v4.0 CategoryQualityEngine test
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from server import CategoryQualityEngine
+
+          # Load default keyword map
+          kw_path = Path("data/category_keywords_default.json")
+          assert kw_path.exists(), "category_keywords_default.json not found"
+
+          # Force reload
+          CategoryQualityEngine._loaded = False
+          CategoryQualityEngine._kw_map = {}
+          result = CategoryQualityEngine.score(
+              "User cannot reset AD password and account is locked in Active Directory",
+              "Access"
+          )
+          assert result["category_flag"] == False, f"Correct category should not be flagged: {result}"
+          print(f"Correct category: confidence={result['category_confidence']} flag={result['category_flag']}")
+
+          # Test mismatch detection
+          CategoryQualityEngine._loaded = False
+          CategoryQualityEngine._kw_map = {}
+          mismatch = CategoryQualityEngine.score(
+              "User cannot reset AD password and account is locked in Active Directory",
+              "Hardware"
+          )
+          print(f"Wrong category: confidence={mismatch['category_confidence']} flag={mismatch['category_flag']} suggest={mismatch['category_suggestion']}")
+          PY
+
+      # -----------------------------------------------------------------------
+      # v4.0 — NotePatternEngine (no DB required — empty DB is valid)
+      # -----------------------------------------------------------------------
+      - name: v4.0 NotePatternEngine initialisation test
+        run: |
+          python - <<'PY'
+          import tempfile, os
+          from pathlib import Path
+
+          # Point DB to temp file so no disk write permission issues
+          import server
+          server.DB_PATH = Path(tempfile.mktemp(suffix=".db"))
+          server.DATA_DIR = server.DB_PATH.parent
+
+          server._init_db()  # seeds note patterns
+
+          from server import NotePatternEngine
+          # Low-scoring note criteria
+          weak_scores = {3: 20, 10: 25, 11: 30, 19: 40, 25: 35, 28: 45, 41: 10}
+          suggestions = NotePatternEngine.get_suggestions(weak_scores, "access")
+          # After seeding we should get at least one suggestion for 'access'
+          print(f"Note suggestions for Access with weak criteria: {len(suggestions)} returned")
+          for s in suggestions:
+              assert "prompt" in s and s["prompt"], "Suggestion missing prompt field"
+          PY
+
+      # -----------------------------------------------------------------------
+      # v4.0 — Full score pipeline returns all new fields
+      # -----------------------------------------------------------------------
+      - name: v4.0 Full score pipeline field check
+        run: |
+          python - <<'PY'
+          from server import PyCTQEngine
+          ticket = {
+            "short_description": "Cannot access email — Outlook keeps crashing",
+            "description": "Outlook crashes immediately on launch. Started today after Windows Update.",
+            "category": "Software",
+            "subcategory": "Email Client",
+            "priority": "3 - Medium",
+            "state": "Resolved",
+            "assignment_group": "Desktop Support",
+            "assigned_to": "A.Singh",
+            "caller": "B.Taylor",
+            "work_notes": "Uninstalled and reinstalled Outlook. Tested — working. Reset profile.",
+            "resolution_notes": "Reinstalled Outlook v16.0.17. User confirmed email loading correctly.",
+            "resolution_code": "Resolved by IT",
+            "additional_comments": "Hi, your Outlook has been fixed. Kind regards, IT Support",
+            "knowledge_used": "KB1234567",
+          }
+          result = PyCTQEngine.score(ticket)
+
+          required_v4_fields = [
+              "sentiment_profile", "resolution_integrity",
+              "category_confidence", "category_flag", "note_suggestions"
+          ]
+          for field in required_v4_fields:
+              assert field in result, f"Missing v4.0 field: {field}"
+
+          profile = result["sentiment_profile"]
+          v4_dims = ["polarity","frustration_index","escalation_urgency","vip_sensitivity",
+                     "sla_anxiety","resolution_confidence","repeat_caller_signal"]
+          for d in v4_dims:
+              assert d in profile, f"Missing sentiment dimension: {d}"
+
+          print(f"All v4.0 fields present. RI={result['resolution_integrity']} | Cat confidence={result['category_confidence']}")
+          PY

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YK CTQ Audit Intelligence Platform v4.0 Enterprise</title>
+    <meta name="description" content="Enterprise Ticket Quality Analysis Platform by YK">
+    <meta name="author" content="Yogesh K">
+    <meta name="version" content="4.0.0">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+    <!-- Plotly.js for interactive charts (v4.0) — loads async, offline-safe -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+    <!-- SheetJS for Excel file parsing (v4.0) — served locally for offline reliability -->
+    <script src="/js/xlsx.full.min.js"></script>
+    <!-- History Manager — must load before app.js -->
+    <script src="/js/history-manager.js?v=4.0.5"></script>
+    <!-- Cache-buster: bump ?v= when deploying JS changes to force browser reload -->
+    <script>window._appVersion = '4.0.5';</script>
+</head>
+<body>
+    <!-- Authentication Overlay -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-container">
+            <div class="yk-brand-login">
+                <div class="yk-logo-large">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="45" fill="#00d4ff" opacity="0.2"/>
+                        <text x="50" y="70" text-anchor="middle" fill="#00d4ff" font-family="Arial Black" font-size="45" font-weight="bold">YK</text>
+                        <path d="M20 50 L50 15 L80 50" stroke="#7c4dff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1>YK CTQ AUDIT</h1>
+                <p class="version-text">Enterprise Edition v4.0.0</p>
+                <p class="tagline">Advanced Ticket Quality Intelligence</p>
+            </div>
+            
+            <div class="auth-form">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="auth-username" class="yk-input" placeholder="Enter username" autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="auth-password" class="yk-input" placeholder="Enter password" autocomplete="current-password">
+                </div>
+                <button id="auth-login-btn" class="yk-btn-primary">
+                    <span class="btn-text">Sign In</span>
+                    <span class="btn-loader" style="display:none">⟳</span>
+                </button>
+                <div id="auth-error" class="auth-error" style="display:none"></div>
+                
+                <div class="auth-footer-info">
+                    <p>Default admin: create credentials via server `.env` or enable local dev mode</p>
+                    <p>Support: <a href="mailto:yollook511@gmail.com">yollook511@gmail.com</a></p>
+                    <p>Developer: Yogesh K</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app-container" class="app-container" style="display:none">
+        <!-- Header -->
+        <header class="yk-header">
+            <div class="brand-container">
+                <div class="yk-logo-small">
+                    <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="25" cy="25" r="22" fill="#00d4ff" opacity="0.2"/>
+                        <text x="25" y="35" text-anchor="middle" fill="#00d4ff" font-family="Arial Black" font-size="22" font-weight="bold">YK</text>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">YK CTQ AUDIT</div>
+                    <div class="brand-subtitle">Enterprise Intelligence Platform</div>
+                </div>
+            </div>
+            
+            <div class="header-stats">
+                <div class="stat-pill">
+                    <span class="stat-label">Version</span>
+                    <span class="stat-value" id="header-version">4.0.0</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Tickets</span>
+                    <span class="stat-value" id="ticket-count">0</span>
+                </div>
+                <div class="stat-pill status-online">
+                    <span class="status-dot"></span>
+                    <span>OFFLINE MODE</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="theme-toggle-btn" class="yk-btn-icon" title="Toggle Dark/Light Mode">🌙</button>
+                <div class="user-menu" id="user-menu">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">Guest</div>
+                        <div class="user-role" id="user-role">User</div>
+                    </div>
+                    <button id="logout-btn" class="yk-btn-icon" title="Sign Out">→</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-layout">
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar">
+                <div class="nav-section">Operations</div>
+                <button class="nav-item active" data-view="dashboard">
+                    <span class="nav-icon">◈</span> Dashboard
+                </button>
+                <button class="nav-item" data-view="audit">
+                    <span class="nav-icon">◎</span> New Audit
+                </button>
+                <button class="nav-item" data-view="results">
+                    <span class="nav-icon">≋</span> Audit Results
+                </button>
+                
+                <div class="nav-section">Analytics</div>
+                <button class="nav-item" data-view="trends">
+                    <span class="nav-icon">↗</span> Trends &amp; History
+                </button>
+                <button class="nav-item" data-view="agents">
+                    <span class="nav-icon">◉</span> Agent Leaderboard
+                </button>
+                <button class="nav-item" data-view="coaching">
+                    <span class="nav-icon">✎</span> Coaching Plan
+                </button>
+                <button class="nav-item" data-view="pillars">
+                    <span class="nav-icon">⬡</span> Quality Pillars
+                </button>
+
+                <div class="nav-section">Intelligence</div>
+                <button class="nav-item" data-view="note-patterns">
+                    <span class="nav-icon">📝</span> Note Patterns
+                </button>
+                <button class="nav-item" data-view="automation">
+                    <span class="nav-icon">🤖</span> Automation Radar
+                </button>
+                <button class="nav-item" data-view="repeat-callers">
+                    <span class="nav-icon">🔁</span> Repeat Callers
+                </button>
+                <button class="nav-item" data-view="kb-health">
+                    <span class="nav-icon">📚</span> KB Health
+                </button>
+
+                <div class="nav-section">System</div>
+                <button class="nav-item admin-only" data-view="admin" style="display:none">
+                    <span class="nav-icon">⚙</span> Admin Panel
+                </button>
+                <button class="nav-item admin-only" data-view="logs" style="display:none">
+                    <span class="nav-icon">📋</span> Execution Logs
+                </button>
+                <button class="nav-item" id="export-trigger">
+                    <span class="nav-icon">↓</span> Export Report
+                </button>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main class="main-content" id="main-content">
+                <!-- Views will be injected here by app.js -->
+                <div id="view-container"></div>
+            </main>
+        </div>
+
+        <!-- Enterprise Footer -->
+        <footer class="yk-enterprise-footer">
+            <div class="footer-grid">
+                <div class="footer-branding">
+                    <div class="yk-mini-logo">YK</div>
+                    <div>
+                        <div class="footer-product-name">YK CTQ Audit Intelligence Platform</div>
+                        <div class="footer-version">Enterprise Edition v4.0.0</div>
+                    </div>
+                </div>
+                
+                <div class="footer-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Developer:</span>
+                        <span class="meta-value">Yogesh K</span>
+                    </div>
+                    <div class="meta-divider">|</div>
+                    <div class="meta-item">
+                        <span class="meta-label">Version:</span>
+                        <span class="meta-value" id="footer-version-display">4.0.0-Enterprise</span>
+                    </div>
+                    <div class="meta-divider">|</div>
+                    <div class="meta-item">
+                        <span class="meta-label">Support:</span>
+                        <a href="mailto:yollook511@gmail.com" class="meta-link">yollook511@gmail.com</a>
+                    </div>
+                    <div class="meta-divider">|</div>
+                    <div class="meta-item">
+                        <span class="meta-label">Status:</span>
+                        <span class="meta-value status-secure">● Secure Offline</span>
+                    </div>
+                </div>
+                
+                <div class="footer-copyright">
+                    © 2026 Yogesh K — Released under the <a href="https://github.com/Yogeshkum84/ctq-enterprise/blob/main/LICENSE" style="color:inherit;text-decoration:underline">MIT Licence</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display:none">
+        <div class="loading-content">
+            <div class="yk-spinner"></div>
+            <div class="loading-text" id="loading-text">Processing...</div>
+            <div class="loading-subtext" id="loading-subtext"></div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container" class="modal-container" style="display:none"></div>
+
+<!-- Export Modal -->
+<div id="export-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal" style="background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:28px; min-width:400px; max-width:500px;">
+        <div class="modal-title" style="font-size:16px; font-weight:600; margin-bottom:18px; color:var(--text);">Export Audit Report</div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+            <div class="export-opt selected" onclick="selectExportFormat('csv')" id="exp-csv" style="border:2px solid var(--accent); border-radius:8px; padding:16px; cursor:pointer; text-align:center; background:rgba(0,212,255,0.05);">
+                <div style="font-size:28px; margin-bottom:8px;">📊</div>
+                <div style="font-weight:600; font-size:13px;">CSV Spreadsheet</div>
+                <div style="font-size:11px; color:var(--text2); margin-top:4px;">All fields + 42 CTQ scores<br>Opens in Excel</div>
+            </div>
+            <div class="export-opt" onclick="selectExportFormat('pdf')" id="exp-pdf" style="border:2px solid var(--border2); border-radius:8px; padding:16px; cursor:pointer; text-align:center;">
+                <div style="font-size:28px; margin-bottom:8px;">📄</div>
+                <div style="font-weight:600; font-size:13px;">PDF Report</div>
+                <div style="font-size:11px; color:var(--text2); margin-top:4px;">Formatted audit report<br>Print-ready A4</div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:12px;">
+            <label class="fld-label" style="font-family:var(--mono); font-size:9px; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; display:block;">Filter</label>
+            <select class="inp" id="exp-filter" style="width:100%;">
+                <option value="all">All audited tickets</option>
+                <option value="fail">Compliance failures only</option>
+                <option value="sla">SLA breached only</option>
+                <option value="neg">Negative sentiment only</option>
+            </select>
+        </div>
+        
+        <div class="flex gap8" style="justify-content:flex-end; margin-top:20px;">
+            <button class="btn btn-ghost" onclick="closeExportModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="executeExport()">↓ Export Now</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden iframe for PDF printing -->
+<iframe id="print-frame" style="display:none;"></iframe>
+
+
+    <!-- Scripts -->
+    <script src="/js/app.js?v=4.0.5"></script>
+</body>
+</html>

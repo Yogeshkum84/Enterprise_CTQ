@@ -1,0 +1,24 @@
+# YK CTQ Audit Intelligence Platform v4.0 — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Core web framework
+flask>=3.0
+flask-cors>=4.0
+
+# Security — password hashing + environment configuration
+bcrypt>=4.0
+python-dotenv>=1.0
+
+# Email notifications (optional)
+Flask-Mail>=0.9.1
+
+# Production WSGI server (optional, recommended for non-dev use)
+waitress>=3.0
+
+# v4.0 — Intelligence engines
+# TF-IDF vectorisation and K-means clustering for:
+#   - CategoryQualityEngine (cosine similarity mis-categorisation detection)
+#   - Automation Radar (K-means ticket clustering)
+# Optional: the platform runs without these; clustering features are disabled if absent.
+scikit-learn>=1.3
+numpy>=1.26

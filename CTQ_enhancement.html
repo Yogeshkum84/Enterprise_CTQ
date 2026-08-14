@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Spec: Dynamic CTQ Frameworks | YK Enterprise</title>
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --surface: #111318;
+            --surface2: #181c23;
+            --border: #1e2430;
+            --border2: #252d3a;
+            --accent: #00d4ff;
+            --purple: #7c4dff;
+            --text: #e8edf5;
+            --text2: #8a9ab5;
+            --text3: #4a5568;
+            --mono: 'Consolas', 'Courier New', monospace;
+            --sans: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            line-height: 1.6;
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .doc-header {
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .brand-logo {
+            font-family: var(--mono);
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent);
+            letter-spacing: 2px;
+        }
+        .doc-meta {
+            text-align: right;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text2);
+        }
+        h1 { font-size: 28px; color: var(--text); margin-bottom: 10px; }
+        h2 { font-size: 20px; color: var(--accent); border-left: 4px solid var(--purple); padding-left: 15px; margin-top: 40px; font-family: var(--mono); text-transform: uppercase; }
+        h3 { font-size: 16px; color: var(--text); margin-top: 25px; }
+        p, li { color: var(--text2); font-size: 14px; }
+        .highlight { color: var(--accent); font-weight: 600; }
+        
+        .logic-box {
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: var(--mono);
+            font-size: 13px;
+            position: relative;
+        }
+        .logic-box::before {
+            content: "LOGIC FLOW";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: var(--purple);
+            color: white;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--surface);
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: var(--border2);
+            color: var(--accent);
+            font-family: var(--mono);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent);
+            font-family: var(--mono);
+            font-size: 11px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        .badge-purple {
+            background: rgba(124, 77, 255, 0.1);
+            color: #b388ff;
+            border: 1px solid rgba(124, 77, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="doc-header">
+        <div>
+            <div class="brand-logo">YK ENTERPRISE</div>
+            <h1>Dynamic CTQ Framework Specification</h1>
+        </div>
+        <div class="doc-meta">
+            Document ID: YK-SPEC-2025-001<br>
+            Version: 1.0.0<br>
+            Status: PROPOSED
+        </div>
+    </div>
+
+    <section>
+        <h2>1. Executive Summary</h2>
+        <p>
+            Currently, the CTQ engine applies a <span class="highlight">Global Scoring Model</span> (42 criteria applied to all tickets). 
+            The goal of this enhancement is to transition to a <span class="highlight">Contextual Scoring Model</span>.
+            The system must allow Administrators to define specific "CTQ Sets" based on the <b>Ticket Type</b> (Incident, Service Request, Chat, Call), ensuring that only relevant criteria are audited and weighted.
+        </p>
+    </section>
+
+    <section>
+        <h2>2. Logical Architecture</h2>
+        <p>The system will move from a 1:1 relationship (Ticket $\rightarrow$ Global CTQ) to a 1:M relationship (Ticket Type $\rightarrow$ CTQ Set).</p>
+        
+        <div class="logic-box">
+            <b>Step 1:</b> Identify Ticket Type (e.g., "Incident")<br>
+            <b>Step 2:</b> Fetch associated CTQ Set ID (e.g., "SET_INC_01")<br>
+            <b>Step 3:</b> Load only the criteria linked to that Set ID<br>
+            <b>Step 4:</b> Apply Set-specific weights (Sum must = 100%)<br>
+            <b>Step 5:</b> Compute Overall Score based on the filtered subset
+        </div>
+    </section>
+
+    <section>
+        <h2>3. Data Schema Design</h2>
+        <p>To achieve this, we need to separate the <b>Definition</b> of a CTQ from its <b>Assignment</b> to a set.</p>
+        
+        <h3>3.1 Master CTQ Table (The Library)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>ctq_id</code></td>
+                    <td>String (PK)</td>
+                    <td>Unique identifier (e.g., CTQ_01)</td>
+                </tr>
+                <tr>
+                    <td><code>criteria_name</code></td>
+                    <td>String</td>
+                    <td>The name of the audit question</td>
+                </tr>
+                <tr>
+                    <td><code>pillar</code></td>
+                    <td>String</td>
+                    <td>The quality pillar it belongs to</td>
+                </tr>
+                <tr>
+                    <td><code>scoring_logic</code></td>
+                    <td>JSON/Regex</td>
+                    <td>The rule used to score the ticket</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>3.2 CTQ Set Table (The Templates)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>set_id</code></td>
+                    <td>String (PK)</td>
+                    <td>Unique ID for the set (e.g., SET_INC)</td>
+                </tr>
+                <tr>
+                    <td><code>set_name</code></td>
+                    <td>String</td>
+                    <td>Human-readable name (e.g., "Incident Audit Framework")</td>
+                </tr>
+                <tr>
+                    <td><code>ticket_type</code></td>
+                    <td>String</td>
+                    <td>The type this set targets (Incident, SR, etc.)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>3.3 Set Mapping Table (The Weights)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>set_id</code></td>
+                    <td>String (FK)</td>
+                    <td>Link to the CTQ Set</td>
+                </tr>
+                <tr>
+                    <td><code>ctq_id</code></td>
+                    <td>String (FK)</td>
+                    <td>Link to the Master CTQ</td>
+                </tr>
+                <tr>
+                    <td><code>weight</code></td>
+                    <td>Float</td>
+                    <td>The specific weight for <i>this</i> set</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>4. Admin UI Workflow</h2>
+        <p>The Admin Panel will be enhanced with a <b>Framework Manager</b>.</p>
+        <ul>
+            <li><span class="tag">Create Set</span>: Admin creates a new set (e.g., "Chat Audit") and assigns it to the "Chat" ticket type.</li>
+            <li><span class="tag">Pick & Choose</span>: Admin sees a list of all 42 Master CTQs with checkboxes. They select only the 15-20 that apply to Chats.</li>
+            <li><span class="tag">Dynamic Weighting</span>: Once selected, a weight input appears for each. The UI provides a <b>Real-time Total</b>; the "Save" button remains disabled until the total equals exactly 100%.</li>
+            <li><span class="tag">Quick-Clone</span>: Ability to copy the "Incident Set" and create a "High-Priority Incident Set" by simply adjusting a few weights.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>5. Scoring Engine Impact</h2>
+        <p>The scoring function in <code>server.py</code> will be updated as follows:</p>
+        
+        <div class="logic-box" style="border-color: var(--purple);">
+            <span class="badge-purple">PYTHON PSEUDOCODE</span><br><br>
+            <code>
+                def score_ticket(ticket):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;t_type = ticket.type # e.g., "Service Request"<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ctq_set = db.get_set_by_type(t_type)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;criteria_list = db.get_criteria_for_set(ctq_set.id)<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;total_weighted_score = 0<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;for item in criteria_list:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;score = execute_logic(item.logic, ticket.content)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total_weighted_score += (score * item.weight)<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;return total_weighted_score
+            </code>
+        </div>
+    </section>
+
+    <section>
+        <h2>6. Summary of Benefits</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Global Model (v2.0)</th>
+                    <th>Dynamic Model (v3.0)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>Accuracy</b></td>
+                    <td>Low (Scores irrelevant criteria)</td>
+                    <td>High (Context-aware scoring)</td>
+                </tr>
+                <tr>
+                    <td><b>Admin Effort</b></td>
+                    <td>Single point of failure</td>
+                    <td>Modular and scalable</td>
+                </tr>
+                <tr>
+                    <td><b>Agent Fairness</b></td>
+                    <td>Agent penalized for missing "SLA" in a Chat</td>
+                    <td>Agent only scored on "Chat-relevant" CTQs</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+</body>
+</html>
