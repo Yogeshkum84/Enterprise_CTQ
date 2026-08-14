@@ -10,7 +10,8 @@ dist/
 build/
 
 # Runtime data — NEVER commit real ticket data
-data/
+data/*
+!data/category_keywords_default.json
 output/
 
 # IDE

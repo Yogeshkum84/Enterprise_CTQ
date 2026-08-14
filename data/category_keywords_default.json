@@ -1,0 +1,106 @@
+{
+  "_comment": "Default ITIL category keyword map for cold-start categorisation quality scoring. Admin can extend via Admin Panel once enough ticket history is accumulated.",
+  "_version": "4.0.0",
+
+  "Access": [
+    "access", "permission", "password", "reset", "unlock", "locked", "account",
+    "login", "logon", "credential", "active directory", "ad", "ldap", "sso",
+    "mfa", "two-factor", "authentication", "authorisation", "authorisation",
+    "rbac", "role", "group membership", "vpn", "remote access", "token",
+    "disable", "enable", "provisioning", "deprovisioning", "onboard", "offboard",
+    "expired password", "user account", "service account", "privileged"
+  ],
+
+  "Hardware": [
+    "hardware", "laptop", "desktop", "computer", "pc", "workstation", "monitor",
+    "screen", "keyboard", "mouse", "dock", "docking station", "usb", "port",
+    "battery", "charger", "power", "ram", "memory", "hard drive", "ssd",
+    "hdd", "disk", "broken", "physical", "device", "headset", "webcam",
+    "camera", "printer", "scanner", "peripheral", "toner", "cartridge",
+    "paper jam", "replacement", "asset", "serial number", "warranty", "repair"
+  ],
+
+  "Software": [
+    "software", "application", "app", "install", "uninstall", "update",
+    "upgrade", "patch", "version", "licence", "license", "activation",
+    "microsoft", "office", "word", "excel", "outlook", "teams", "sharepoint",
+    "onedrive", "adobe", "pdf", "browser", "chrome", "edge", "firefox",
+    "crash", "error", "not working", "hang", "freeze", "slow", "bug",
+    "configuration", "settings", "registry", "plugin", "extension",
+    "antivirus", "malware", "defender", "windows", "macos", "os", "boot"
+  ],
+
+  "Network": [
+    "network", "internet", "connectivity", "connection", "wifi", "wireless",
+    "ethernet", "cable", "lan", "wan", "vpn", "firewall", "proxy",
+    "bandwidth", "speed", "latency", "ping", "packet loss", "timeout",
+    "dns", "dhcp", "ip address", "subnet", "gateway", "switch", "router",
+    "access point", "ssid", "port", "vlan", "network drive", "mapped drive",
+    "shares", "unc", "disconnected", "dropping", "intermittent", "offline"
+  ],
+
+  "Email": [
+    "email", "mail", "outlook", "mailbox", "inbox", "calendar", "meeting",
+    "invite", "distribution list", "dl", "alias", "shared mailbox",
+    "send", "receive", "reply", "bounce", "spam", "junk", "phishing",
+    "attachment", "signature", "auto-reply", "out of office", "quota",
+    "storage", "archive", "pst", "exchange", "o365", "office 365",
+    "smtp", "imap", "pop3", "delegate", "rule", "folder", "contact"
+  ],
+
+  "Printer": [
+    "printer", "print", "printing", "scanner", "scan", "copier", "fax",
+    "toner", "cartridge", "ink", "paper jam", "offline", "queue",
+    "spooler", "driver", "install printer", "network printer", "shared printer",
+    "a4", "a3", "double sided", "duplex", "colour", "black and white",
+    "hp", "canon", "ricoh", "konica", "xerox", "lexmark",
+    "print job", "stuck", "not printing", "blank page"
+  ],
+
+  "Telephone": [
+    "phone", "telephone", "handset", "voicemail", "extension", "dial",
+    "call", "cisco", "avaya", "teams phone", "softphone", "headset",
+    "conference", "transfer", "hold", "call forwarding", "pbx", "ivr",
+    "direct dial", "ddi", "hunt group", "ring", "busy", "no dial tone",
+    "mobile", "4g", "5g", "sim", "device management", "mdm"
+  ],
+
+  "Server": [
+    "server", "virtual machine", "vm", "vmware", "hyper-v", "azure",
+    "aws", "cloud", "on-premise", "service", "daemon", "process",
+    "cpu", "memory", "disk space", "storage", "backup", "restore",
+    "failover", "cluster", "high availability", "reboot", "restart",
+    "maintenance", "patching", "windows server", "linux", "sql server",
+    "iis", "web server", "application server", "dns server", "ad server"
+  ],
+
+  "Database": [
+    "database", "sql", "query", "table", "record", "data", "report",
+    "extract", "export", "import", "backup", "restore", "corruption",
+    "connection string", "odbc", "jdbc", "mysql", "oracle", "mssql",
+    "postgres", "mongodb", "index", "performance", "slow query",
+    "timeout", "stored procedure", "schema", "migration"
+  ],
+
+  "Security": [
+    "security", "malware", "virus", "ransomware", "phishing", "breach",
+    "incident", "suspicious", "unauthorised", "blocked", "quarantine",
+    "endpoint", "antivirus", "defender", "firewall", "encryption",
+    "certificate", "ssl", "tls", "compliance", "gdpr", "audit",
+    "vulnerability", "patch", "cve", "penetration", "threat",
+    "data loss", "dlp", "leaked", "exposed", "compromised"
+  ],
+
+  "Request": [
+    "request", "new", "provision", "setup", "configure", "install",
+    "order", "procurement", "purchase", "quote", "approval",
+    "change request", "service request", "onboarding", "new starter",
+    "joiner", "leaver", "mover", "equipment", "license request",
+    "access request", "software request", "hardware request"
+  ],
+
+  "General": [
+    "general", "other", "miscellaneous", "query", "question", "information",
+    "guidance", "help", "support", "advice", "clarification"
+  ]
+}
