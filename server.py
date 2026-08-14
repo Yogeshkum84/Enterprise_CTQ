@@ -1282,6 +1282,32 @@ def static_files(path):
 
 
 # ---------------------------------------------------------------------------
+# API authorization — every /api/* route requires an active session except
+# the three auth endpoints themselves. This was previously missing entirely:
+# the login screen only gated the browser UI, and every business endpoint
+# (audit scoring, history, note patterns, logs, ...) was reachable by anyone
+# with network access to the server, session or no session. See
+# tests/test_health.py::test_protected_routes_require_auth for the
+# regression test that guards this.
+# ---------------------------------------------------------------------------
+PUBLIC_API_ROUTES = {
+    "/api/auth/login",
+    "/api/auth/session",
+    "/api/auth/logout",
+    "/api/health",  # conventionally public for monitoring/liveness checks
+}
+
+
+@app.before_request
+def _require_auth():
+    path = request.path
+    if path.startswith("/api/") and path not in PUBLIC_API_ROUTES:
+        if "username" not in session:
+            log.warning("Unauthenticated request blocked: %s %s", request.method, path)
+            return jsonify({"success": False, "error": "Authentication required"}), 401
+
+
+# ---------------------------------------------------------------------------
 # API — Authentication
 # ---------------------------------------------------------------------------
 @app.route("/api/auth/login", methods=["POST"])
