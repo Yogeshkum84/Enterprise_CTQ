@@ -57,6 +57,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run gitleaks (scan repository for secrets)
-        uses: zricethezav/gitleaks-action@v4
+        uses: gitleaks/gitleaks-action@v2.3.9
         with:
           args: --leaks-exit-code=1
