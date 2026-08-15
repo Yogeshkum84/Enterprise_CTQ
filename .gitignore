@@ -29,5 +29,8 @@ Thumbs.db
 # Environment file containing secrets
 .env
 
+# Persisted Flask session-signing key (auto-generated on first run)
+.secret_key
+
 CoPilot-Dashboard/
 Logs/

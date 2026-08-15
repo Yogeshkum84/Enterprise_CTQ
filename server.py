@@ -48,6 +48,13 @@ except ImportError:
     _MAIL_AVAILABLE = False
 
 try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    _LIMITER_AVAILABLE = True
+except ImportError:
+    _LIMITER_AVAILABLE = False
+
+try:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.cluster import KMeans
     import numpy as np
@@ -68,7 +75,8 @@ DATA_DIR = BASE_DIR / "data"
 app = Flask(__name__, static_folder=str(BASE_DIR))
 
 # Security configuration
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
+# NOTE: SECRET_KEY is set further down (after logging is configured), via
+# _get_or_create_secret_key() — see that function for why.
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'  # False for HTTP dev
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JS access to session
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
@@ -133,6 +141,68 @@ logging.getLogger("werkzeug").setLevel(logging.INFO)
 
 log = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# SECRET_KEY — must be stable across restarts, or every active session
+# (every logged-in user) is silently invalidated each time the process
+# restarts/redeploys. Precedence: explicit SECRET_KEY env var (production
+# default), then a key persisted to .secret_key next to server.py
+# (generated once, reused after that), and only as a last resort a fresh
+# random key for this process if the file can't be written.
+# ---------------------------------------------------------------------------
+def _get_or_create_secret_key() -> str:
+    env_key = os.getenv('SECRET_KEY')
+    if env_key:
+        return env_key
+
+    key_path = BASE_DIR / ".secret_key"
+    try:
+        if key_path.exists():
+            key = key_path.read_text(encoding="utf-8").strip()
+            if key:
+                return key
+        key = secrets.token_hex(32)
+        key_path.write_text(key, encoding="utf-8")
+        try:
+            os.chmod(key_path, 0o600)  # best-effort; no-op on platforms without POSIX perms (e.g. Windows)
+        except OSError:
+            pass
+        log.info("Generated and persisted a new SECRET_KEY to %s", key_path)
+        return key
+    except OSError as e:
+        log.warning("Could not read/write .secret_key (%s); sessions will not survive a restart. "
+                     "Set SECRET_KEY in the environment to fix this.", e)
+        return secrets.token_hex(32)
+
+
+app.config['SECRET_KEY'] = _get_or_create_secret_key()
+
+# ---------------------------------------------------------------------------
+# Rate limiting — protects /api/auth/login from brute-force credential
+# guessing. Uses in-memory storage, which is correct for this app's single
+# -process deployment model (app.run(threaded=True) / one waitress worker);
+# if this is ever run behind multiple worker processes, point storage_uri at
+# a shared backend (e.g. Redis) or per-process limits stop being enforced
+# globally.
+# ---------------------------------------------------------------------------
+if _LIMITER_AVAILABLE:
+    limiter = Limiter(get_remote_address, app=app, default_limits=[], storage_uri="memory://")
+else:
+    limiter = None
+    log.warning("flask-limiter not installed; /api/auth/login is not rate-limited")
+
+
+def _rate_limited(limit_str):
+    """Decorator factory: applies a flask-limiter limit when the library is
+    installed, and is a harmless no-op otherwise (same optional-dependency
+    pattern as flask_mail/sklearn above)."""
+    def decorator(f):
+        if limiter is None:
+            return f
+        return limiter.limit(limit_str)(f)
+    return decorator
+
+
 APP_VERSION = "4.0.0"
 
 # Shared state for async K-means
@@ -142,16 +212,25 @@ _cluster_state = {"status": "idle", "updated_at": None, "results": []}
 # ---------------------------------------------------------------------------
 # Users — bcrypt password hashing for production security
 # ---------------------------------------------------------------------------
+# Set to True by _load_users_from_env() if it seeded the dev-default admin
+# account. Checked at startup to refuse binding to a non-loopback host while
+# a known, publicly-documented default credential is active. See the guard
+# in `if __name__ == "__main__":` below.
+_DEV_DEFAULTS_ACTIVE = False
+
+
 def _load_users_from_env() -> dict:
     """Load users from environment variables with bcrypt hashes.
-    
+
     Default users for development (change in production):
     - admin / Admin@CTQ2025
     - user / user123
-    
+
     To generate bcrypt hash:
         python -c "import bcrypt; print(bcrypt.hashpw(b'password', bcrypt.gensalt(12)).decode())"
     """
+    global _DEV_DEFAULTS_ACTIVE
+
     # In production require explicit bcrypt hashes set in environment for accounts.
     # Optionally allow a development-only seeded default when ALLOW_DEV_DEFAULTS=true
     env_admin_hash = os.getenv('ADMIN_PASSWORD_HASH')
@@ -177,6 +256,7 @@ def _load_users_from_env() -> dict:
                 "role": "admin",
                 "displayName": "System Administrator (dev)",
             }
+            _DEV_DEFAULTS_ACTIVE = True
         else:
             log.warning('No ADMIN_PASSWORD_HASH provided; admin login disabled until configured')
 
@@ -1310,7 +1390,14 @@ def _require_auth():
 # ---------------------------------------------------------------------------
 # API — Authentication
 # ---------------------------------------------------------------------------
+@app.errorhandler(429)
+def _rate_limit_exceeded(e):
+    log.warning("Rate limit exceeded: %s %s from %s", request.method, request.path, get_remote_address() if _LIMITER_AVAILABLE else "?")
+    return jsonify({"success": False, "error": "Too many attempts. Please try again later."}), 429
+
+
 @app.route("/api/auth/login", methods=["POST"])
+@_rate_limited("5 per minute")
 def login():
     """Authenticate user with bcrypt password verification."""
     try:
@@ -1692,6 +1779,24 @@ def _log_response(response):
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     _init_db()
+
+    host = os.getenv('HOST', '127.0.0.1')
+    port = int(os.getenv('PORT', 8745))
+
+    # Refuse to bind to a non-loopback address while a publicly-documented
+    # default admin credential (Admin@CTQ2025) is active. This is a hard
+    # stop, not a warning — that credential is in the README/CHANGELOG, so
+    # exposing it beyond localhost is a critical exposure, not a footgun.
+    if _DEV_DEFAULTS_ACTIVE and host not in ("127.0.0.1", "localhost", "::1"):
+        log.error(
+            "Refusing to start: ALLOW_DEV_DEFAULTS seeded a default admin "
+            "account, but HOST=%s is not loopback. Set ADMIN_PASSWORD_HASH "
+            "and USER_PASSWORD_HASH (see .env.example) and disable "
+            "ALLOW_DEV_DEFAULTS before binding to a non-local address.",
+            host,
+        )
+        raise SystemExit(1)
+
     banner = "=" * 58
     log.info(banner)
     log.info("  YK CTQ Audit Intelligence Platform v4.0")
@@ -1700,7 +1805,7 @@ if __name__ == "__main__":
     log.info("  Database     : %s", DB_PATH)
     log.info("  Log folder   : %s", LOG_DIR)
     log.info("  scikit-learn : %s", "available" if _SKLEARN else "not installed (clustering disabled)")
-    log.info("  Open browser : http://localhost:8745")
+    log.info("  Open browser : http://%s:%s", host, port)
     log.info(banner)
     print(banner)
     print("  YK CTQ Audit Intelligence Platform v4.0")
@@ -1709,6 +1814,6 @@ if __name__ == "__main__":
     print(f"  Database     : {DB_PATH}")
     print(f"  Log folder   : {LOG_DIR}")
     print(f"  scikit-learn : {'available' if _SKLEARN else 'not installed (clustering disabled)'}")
-    print(f"  Open browser : http://localhost:8745")
+    print(f"  Open browser : http://{host}:{port}")
     print(banner)
-    app.run(host="127.0.0.1", port=8745, threaded=True, debug=False)
+    app.run(host=host, port=port, threaded=True, debug=False)

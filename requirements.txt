@@ -9,6 +9,9 @@ flask-cors>=4.0
 bcrypt>=4.0
 python-dotenv>=1.0
 
+# Security — rate limiting for /api/auth/login (brute-force protection)
+flask-limiter>=3.5
+
 # Email notifications (optional)
 Flask-Mail>=0.9.1
 
